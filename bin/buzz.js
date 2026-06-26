@@ -27,8 +27,10 @@ Keep your screen awake by simulating input.
 
 USAGE:
   buzz              Keep awake indefinitely (Ctrl+C to stop)
-  buzz 20           Keep awake for 20 minutes
-  buzz 1.5          Keep awake for 1.5 hours (90 min)
+  buzz 20           Keep awake for 20 minutes (default unit)
+  buzz 2h           Keep awake for 2 hours
+  buzz 30s          Keep awake for 30 seconds
+  buzz 1.5h         Keep awake for 1.5 hours (90 min)
   buzz stop         Stop any running buzz
   buzz status       Check if buzz is running
   buzz help         Show this help
@@ -39,13 +41,14 @@ PLATFORMS:
   Linux     Uses xdotool (if available)
 
 EXAMPLES:
-  buzz 30           # Stay awake for 30 min
-  buzz 2            # Stay awake for 2 hours
-  buzz              # Stay awake until you Ctrl+C
+  buzz 30           # 30 minutes
+  buzz 2h           # 2 hours
+  buzz 90           # 90 minutes
+  buzz              # until Ctrl+C
 
 TIPS:
-  - Numbers >= 10 are treated as minutes
-  - Numbers < 10 are treated as hours
+  - Default unit is minutes: buzz 5 = 5 minutes
+  - Suffixes: s (seconds), min (minutes), h (hours)
   - No npm dependencies required!
 `;
 
@@ -80,12 +83,34 @@ function formatDuration(ms) {
 }
 
 function parseDuration(arg) {
-  const num = parseFloat(arg);
+  // Formats: "20" = 20min, "2h" = 2h, "30s" = 30s, "5min" = 5min, "1.5h" = 90min
+  const match = arg.match(/^(\d+(?:\.\d+)?)\s*(h|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)?$/i);
+  if (!match) return null;
+
+  const num = parseFloat(match[1]);
   if (isNaN(num) || num <= 0) return null;
-  // >= 10 → minutes, < 10 → hours
-  return num >= 10
-    ? num * 60 * 1000
-    : num * 60 * 60 * 1000;
+
+  const unit = (match[2] || 'min').toLowerCase();
+
+  if (unit.startsWith('h'))     return num * 60 * 60 * 1000;  // hours
+  if (unit.startsWith('s'))     return num * 1000;             // seconds
+  return num * 60 * 1000;                                      // minutes (default)
+}
+
+function humanDuration(ms) {
+  if (ms < 60000) {
+    const s = Math.round(ms / 1000);
+    return `${s} second${s > 1 ? 's' : ''}`;
+  }
+  if (ms < 3600000) {
+    const m = Math.round(ms / 60000);
+    return `${m} minute${m > 1 ? 's' : ''}`;
+  }
+  const h = ms / 3600000;
+  if (h === Math.floor(h)) return `${h} hour${h > 1 ? 's' : ''}`;
+  // e.g. 90 min → show as "90 minutes" not "1.5 hours"
+  const m = Math.round(ms / 60000);
+  return `${m} minute${m > 1 ? 's' : ''}`;
 }
 
 // ─── Platform-specific jiggler ───
@@ -213,8 +238,7 @@ function cmdRun(durationMs) {
     : 'Linux xdotool';
 
   if (durationMs) {
-    const mins = Math.round(durationMs / 60000);
-    console.log(`🐝 buzz started! Keeping awake for ${mins} minutes.`);
+    console.log(`🐝 buzz started! Keeping awake for ${humanDuration(durationMs)}.`);
   } else {
     console.log(`🐝 buzz started! Keeping awake indefinitely.`);
   }

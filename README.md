@@ -14,13 +14,27 @@ npm install -g @xiaoxionga/buzz
 
 ```bash
 buzz              # Keep awake indefinitely (Ctrl+C to stop)
-buzz 20           # Keep awake for 20 minutes
-buzz 2            # Keep awake for 2 hours
-buzz 1.5          # Keep awake for 1.5 hours (90 min)
+buzz 20           # 20 minutes (default unit)
+buzz 2h           # 2 hours
+buzz 30s          # 30 seconds
+buzz 1.5h         # 90 minutes
 buzz stop         # Stop any running buzz
 buzz status       # Check if buzz is running
 buzz help         # Show help
 ```
+
+## Duration Format
+
+Default unit is **minutes**. Add a suffix to override:
+
+| Input | Meaning |
+|-------|---------|
+| `buzz 30` | 30 **minutes** |
+| `buzz 5min` | 5 **minutes** |
+| `buzz 2h` | 2 **hours** |
+| `buzz 1.5h` | 1.5 hours = 90 minutes |
+| `buzz 30s` | 30 **seconds** |
+| `buzz` | ∞ (until Ctrl+C) |
 
 ## How It Works
 
@@ -34,15 +48,6 @@ buzz help         # Show help
 - **Windows**: Presses F15 every 30 seconds via PowerShell. No app binds to F15, so it's completely harmless.
 - **Linux**: Moves mouse 1px via `xdotool`.
 
-## Duration Format
-
-| Input | Meaning |
-|-------|---------|
-| `buzz 30` | 30 **minutes** (numbers ≥ 10 = minutes) |
-| `buzz 5` | 5 **hours** (numbers < 10 = hours) |
-| `buzz 0.5` | 0.5 hours = 30 minutes |
-| `buzz 1.5` | 1.5 hours = 90 minutes |
-
 ## Why buzz?
 
 - **Zero dependencies** — `package.json` has no `dependencies` field. Nothing to break.
@@ -54,7 +59,7 @@ buzz help         # Show help
 
 ```bash
 # Weekend crunch time
-buzz 3             # 3 hours of uninterrupted focus
+buzz 3h            # 3 hours of uninterrupted focus
 
 # Quick meeting
 buzz 30            # 30 minutes
