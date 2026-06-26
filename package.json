@@ -1,0 +1,24 @@
+{
+  "name": "buzz",
+  "version": "1.0.0",
+  "description": "🐝 Keep your screen awake by jiggling the mouse",
+  "main": "bin/buzz.js",
+  "bin": {
+    "buzz": "./bin/buzz.js"
+  },
+  "scripts": {
+    "start": "node bin/buzz.js"
+  },
+  "keywords": [
+    "keep-awake",
+    "caffeine",
+    "no-sleep",
+    "mouse-jiggler",
+    "anti-idle"
+  ],
+  "author": "leonezhu",
+  "license": "MIT",
+  "dependencies": {
+    "robotjs": "^0.6.0"
+  }
+}
