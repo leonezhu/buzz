@@ -1,7 +1,7 @@
 {
   "name": "buzz",
-  "version": "1.0.0",
-  "description": "🐝 Keep your screen awake by jiggling the mouse",
+  "version": "2.0.0",
+  "description": "🐝 Keep your screen awake — zero dependencies, no admin required",
   "main": "bin/buzz.js",
   "bin": {
     "buzz": "./bin/buzz.js"
@@ -17,8 +17,5 @@
     "anti-idle"
   ],
   "author": "leonezhu",
-  "license": "MIT",
-  "dependencies": {
-    "robotjs": "^0.6.0"
-  }
+  "license": "MIT"
 }
