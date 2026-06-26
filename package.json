@@ -1,10 +1,10 @@
 {
-  "name": "buzz",
-  "version": "2.0.0",
+  "name": "@xiaoxionga/buzz",
+  "version": "2.0.1",
   "description": "🐝 Keep your screen awake — zero dependencies, no admin required",
   "main": "bin/buzz.js",
   "bin": {
-    "buzz": "./bin/buzz.js"
+    "buzz": "bin/buzz.js"
   },
   "scripts": {
     "start": "node bin/buzz.js"
@@ -14,8 +14,22 @@
     "caffeine",
     "no-sleep",
     "mouse-jiggler",
-    "anti-idle"
+    "anti-idle",
+    "screen-awake",
+    "caffeinate"
   ],
   "author": "leonezhu",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leonezhu/buzz"
+  },
+  "homepage": "https://github.com/leonezhu/buzz",
+  "engines": {
+    "node": ">=12"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ]
 }
