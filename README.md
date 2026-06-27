@@ -2,8 +2,6 @@
 
 > Keep your screen awake — **zero dependencies, no admin required**.
 
-Tired of your screen locking during long builds, meetings, or deployments? `buzz` keeps your screen awake using built-in OS tools. No native modules, no admin access, no permissions to grant.
-
 ## Install
 
 ```bash
@@ -25,8 +23,6 @@ buzz help         # Show help
 
 ## Duration Format
 
-Default unit is **minutes**. Add a suffix to override:
-
 | Input | Meaning |
 |-------|---------|
 | `buzz 30` | 30 **minutes** |
@@ -38,40 +34,32 @@ Default unit is **minutes**. Add a suffix to override:
 
 ## How It Works
 
-| Platform | Method | Install needed? | Admin needed? | EDR Safe? |
-|----------|--------|:---------------:|:-------------:|:---------:|
-| **macOS** | `caffeinate -i` (built-in) | ❌ | ❌ | ✅ |
-| **Windows** | `SendKeys F15` (built-in, minimal) | ❌ | ❌ | ✅ |
-| **Linux** | `xdotool` (pre-installed) | maybe | ❌ | ✅ |
+| Platform | Method | Admin? | EDR Safe? |
+|----------|--------|:------:|:---------:|
+| **macOS** | `caffeinate -i` (built-in) | ❌ | ✅ |
+| **Windows** (with Java) | `java.awt.Robot` mouse jiggle | ❌ | ✅ |
+| **Windows** (no Java) | `SendKeys F15` fallback | ❌ | ✅ |
+| **Linux** | `xdotool` | ❌ | ✅ |
 
-### Corporate Safety (Windows)
+### Why Java Robot on Windows?
 
-buzz deliberately uses **only** the most benign method on Windows (`WScript.Shell.SendKeys('{F15}')`) to avoid triggering corporate security software (EDR/DLP/antivirus). It does **NOT** use:
+PowerShell-based mouse movement (`DllImport` / `SetThreadExecutionState`) triggers EDR alerts on corporate machines — it looks like malware. Java's `Robot` class goes through JVM → JNI → OS, which EDR sees as a **normal application** doing normal things. If you have Java installed (most dev machines do), buzz will auto-detect and use it.
 
-- ❌ `Add-Type` + `DllImport` — flagged as malware technique by CrowdStrike/Defender
-- ❌ `SetThreadExecutionState` via PowerShell — P/Invoke into kernel32.dll triggers EDR
-- ❌ Automated mouse movement — flagged as keylogger behavior
-
-**If corporate GPO still locks your screen**: buzz can't override hard GPO policies. Use a **hardware Mouse Jiggler** instead — a USB device (~¥15 on Taobao) that physically simulates mouse movement. Zero software footprint, zero EDR detection risk.
+If no Java is found, buzz falls back to `SendKeys F15` (benign keystroke, but may not override strict GPO policies).
 
 ## Why buzz?
 
-- **Zero dependencies** — nothing to break, nothing to audit
+- **Zero npm dependencies** — nothing to break, nothing to audit
 - **No admin required** — perfect for locked-down corporate laptops
-- **EDR-safe** — no suspicious API calls or DLL imports
-- **Cross-platform** — macOS, Windows, Linux all supported
+- **EDR-safe** — no suspicious API calls
+- **Auto-detects best engine** — Java Robot > F15 fallback
 
 ## Examples
 
 ```bash
-# Weekend crunch time
-buzz 3h            # 3 hours of uninterrupted focus
-
-# Quick meeting
+buzz 3h            # 3 hours
 buzz 30            # 30 minutes
-
-# Background build running
-buzz &             # indefinite, then 'buzz stop' when done
+buzz &             # background, then 'buzz stop' when done
 ```
 
 ## License

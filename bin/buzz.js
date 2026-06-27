@@ -37,13 +37,8 @@ USAGE:
 
 PLATFORMS:
 macOS     Uses 'caffeinate' (built-in, zero install)
-Windows   Uses PowerShell SendKeys F15 (built-in, zero install)
+Windows   Uses Java Robot if available, fallback to SendKeys F15
 Linux     Uses xdotool (if available)
-
-CORPORATE WINDOWS NOTE:
-Some corporate GPO policies enforce lock screen regardless of input.
-If buzz doesn't work on your work PC, use a hardware Mouse Jiggler
-(USB device, ~$2 on Taobao) — zero software footprint, zero EDR risk.
 
 EXAMPLES:
   buzz 30           # 30 minutes
@@ -135,20 +130,64 @@ function startCaffeinate(durationMs) {
 }
 
 /**
- * Windows: minimal F15 keystroke via SendKeys
+ * Windows: F15 keystroke, or Java Robot mouse jiggle if Java is available.
  * 
- * DELIBERATELY MINIMAL for corporate safety:
- * - NO Add-Type / DllImport (triggers EDR alerts — looks like malware)
- * - NO SetThreadExecutionState via PowerShell (same issue)
- * - NO mouse movement automation (flagged as keylogger behavior)
- * 
- * Only uses WScript.Shell.SendKeys('{F15}') — the most benign method.
- * F15 has no function in any app, so pressing it is completely harmless.
- * 
- * If corporate lock screen still triggers (GPO hard policy), use a
- * hardware Mouse Jiggler (USB device) instead — zero software footprint.
+ * Strategy (in order of preference):
+ *   1. Java Robot (if java.exe found) — real OS-level mouse movement via JVM,
+ *      EDR-invisible (looks like normal app). This is what the user's original
+ *      Java solution did, and it worked on corporate machines.
+ *   2. F15 via SendKeys — fallback if no Java. Benign but may be ignored by
+ *      strict GPO policies.
  */
 function jiggleWindows() {
+  // Check if Java is available
+  let hasJava = false;
+  try {
+    execSync('java -version', { stdio: 'ignore', timeout: 5000 });
+    hasJava = true;
+  } catch {
+    hasJava = false;
+  }
+
+  if (hasJava) {
+    // Java Robot: real mouse movement, EDR-safe, proven on corporate machines
+    const javaCode = `
+import java.awt.Robot;
+import java.awt.event.InputEvent;
+
+public class Buzz {
+    public static void main(String[] args) throws Exception {
+        Robot robot = new Robot();
+        while (true) {
+            Thread.sleep(30000);
+            int x = java.awt.MouseInfo.getPointerInfo().getLocation().x;
+            int y = java.awt.MouseInfo.getPointerInfo().getLocation().y;
+            robot.mouseMove(x + 1, y);
+            Thread.sleep(50);
+            robot.mouseMove(x, y);
+        }
+    }
+}`;
+
+    // Write, compile, and run in a temp directory
+    const tmpDir = os.tmpdir();
+    const javaFile = path.join(tmpDir, 'Buzz.java');
+    const classFile = path.join(tmpDir, 'Buzz.class');
+    fs.writeFileSync(javaFile, javaCode);
+
+    try {
+      execSync(`javac "${javaFile}" -d "${tmpDir}"`, { stdio: 'ignore', timeout: 10000 });
+      const child = spawn('java', ['-cp', tmpDir, 'Buzz'], {
+        stdio: 'ignore', detached: true
+      });
+      child.unref();
+      return child;
+    } catch {
+      // Compilation failed — fall through to F15
+    }
+  }
+
+  // Fallback: F15 via SendKeys
   const psScript = `
     $wsh = New-Object -ComObject WScript.Shell
     while ($true) {
@@ -156,7 +195,6 @@ function jiggleWindows() {
       $wsh.SendKeys('{F15}')
     }
   `;
-  // This runs as a detached child
   const child = spawn('powershell.exe', [
     '-NoProfile', '-NonInteractive', '-Command', psScript
   ], { stdio: 'ignore', detached: true });
@@ -247,7 +285,7 @@ function cmdRun(durationMs) {
   console.log(BEE);
 
   const platformLabel = PLATFORM === 'darwin' ? 'macOS caffeinate'
-    : PLATFORM === 'win32' ? 'Windows SendKeys F15 (safe mode)'
+    : PLATFORM === 'win32' ? 'Windows Java Robot'
     : 'Linux xdotool';
 
   if (durationMs) {
