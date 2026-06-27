@@ -1,6 +1,6 @@
 {
   "name": "@xiaoxionga/buzz",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "🐝 Keep your screen awake — zero dependencies, no admin required",
   "main": "bin/buzz.js",
   "bin": {

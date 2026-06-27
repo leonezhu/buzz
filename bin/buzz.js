@@ -37,7 +37,7 @@ USAGE:
 
 PLATFORMS:
   macOS     Uses 'caffeinate' (built-in, zero install)
-  Windows   Uses PowerShell SendKeys (built-in, zero install)
+  Windows   Uses SetThreadExecutionState + mouse jiggle (built-in, zero install)
   Linux     Uses xdotool (if available)
 
 EXAMPLES:
@@ -130,19 +130,56 @@ function startCaffeinate(durationMs) {
 }
 
 /**
- * Windows: use PowerShell SendKeys to press F15 every 30s.
- * F15 is harmless — no app binds to it.
- * Zero install, zero admin.
+ * Windows: triple strategy — SetThreadExecutionState + mouse jiggle + F15
+ * 
+ * Many corporate Windows policies ignore synthetic keystrokes (F15).
+ * The robust approach is:
+ *   1. SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED)
+ *      — the official Windows API to prevent sleep (same as YouTube/PowerPoint do)
+ *   2. Move mouse 1px via .NET Cursor.Position — universally recognized as "activity"
+ *   3. F15 via SendKeys as backup
+ * 
+ * All via PowerShell — zero install, zero admin.
  */
 function jiggleWindows() {
-  // Single PowerShell invocation that loops every 30s
   const psScript = `
-    $wsh = New-Object -ComObject WScript.Shell
-    while ($true) {
-      Start-Sleep -Seconds 30
-      $wsh.SendKeys('{F15}')
-    }
-  `;
+# 1. Load Windows Forms for mouse control
+Add-Type -AssemblyName System.Windows.Forms
+
+# 2. Call SetThreadExecutionState to prevent display sleep
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class PowerUtil {
+    [DllImport("kernel32.dll")]
+    public static extern uint SetThreadExecutionState(uint esFlags);
+    
+    public const uint ES_CONTINUOUS = 0x80000000;
+    public const uint ES_SYSTEM_REQUIRED = 0x00000001;
+    public const uint ES_DISPLAY_REQUIRED = 0x00000002;
+}
+"@
+
+# Prevent display from turning off and system from sleeping
+[PowerUtil]::SetThreadExecutionState(
+    [PowerUtil]::ES_CONTINUOUS -bor [PowerUtil]::ES_SYSTEM_REQUIRED -bor [PowerUtil]::ES_DISPLAY_REQUIRED
+)
+
+# 3. Loop: jiggle mouse + press F15
+$wsh = New-Object -ComObject WScript.Shell
+while ($true) {
+    Start-Sleep -Seconds 30
+    
+    # Move mouse 1px then back — most reliable "activity" signal
+    $pos = [System.Windows.Forms.Cursor]::Position
+    [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($pos.X + 1, $pos.Y)
+    Start-Sleep -Milliseconds 50
+    [System.Windows.Forms.Cursor]::Position = $pos
+    
+    # Also press F15 as backup
+    try { $wsh.SendKeys('{F15}') } catch {}
+}
+`;
   // This runs as a detached child
   const child = spawn('powershell.exe', [
     '-NoProfile', '-NonInteractive', '-Command', psScript
@@ -234,7 +271,7 @@ function cmdRun(durationMs) {
   console.log(BEE);
 
   const platformLabel = PLATFORM === 'darwin' ? 'macOS caffeinate'
-    : PLATFORM === 'win32' ? 'Windows SendKeys'
+    : PLATFORM === 'win32' ? 'Windows SetThreadExecutionState + Mouse'
     : 'Linux xdotool';
 
   if (durationMs) {

@@ -41,11 +41,11 @@ Default unit is **minutes**. Add a suffix to override:
 | Platform | Method | Install needed? | Admin needed? |
 |----------|--------|:---------------:|:-------------:|
 | **macOS** | `caffeinate -i` (built-in) | ❌ | ❌ |
-| **Windows** | PowerShell `SendKeys F15` (built-in) | ❌ | ❌ |
+| **Windows** | `SetThreadExecutionState` + mouse jiggle (built-in) | ❌ | ❌ |
 | **Linux** | `xdotool` (pre-installed on most distros) | maybe | ❌ |
 
 - **macOS**: Uses Apple's built-in `caffeinate` — not even a mouse jiggle, just cleanly blocks idle sleep.
-- **Windows**: Presses F15 every 30 seconds via PowerShell. No app binds to F15, so it's completely harmless.
+- **Windows**: Triple strategy — `SetThreadExecutionState` (official Windows API, same as YouTube/PowerPoint use to prevent screen sleep) + mouse jiggle 1px every 30s + F15 keystroke as backup. Corporate lock screen policies that ignore synthetic keystrokes are handled by the real mouse movement.
 - **Linux**: Moves mouse 1px via `xdotool`.
 
 ## Why buzz?
