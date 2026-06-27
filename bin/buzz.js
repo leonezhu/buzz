@@ -36,9 +36,14 @@ USAGE:
   buzz help         Show this help
 
 PLATFORMS:
-  macOS     Uses 'caffeinate' (built-in, zero install)
-  Windows   Uses SetThreadExecutionState + mouse jiggle (built-in, zero install)
-  Linux     Uses xdotool (if available)
+macOS     Uses 'caffeinate' (built-in, zero install)
+Windows   Uses PowerShell SendKeys F15 (built-in, zero install)
+Linux     Uses xdotool (if available)
+
+CORPORATE WINDOWS NOTE:
+Some corporate GPO policies enforce lock screen regardless of input.
+If buzz doesn't work on your work PC, use a hardware Mouse Jiggler
+(USB device, ~$2 on Taobao) — zero software footprint, zero EDR risk.
 
 EXAMPLES:
   buzz 30           # 30 minutes
@@ -130,56 +135,27 @@ function startCaffeinate(durationMs) {
 }
 
 /**
- * Windows: triple strategy — SetThreadExecutionState + mouse jiggle + F15
+ * Windows: minimal F15 keystroke via SendKeys
  * 
- * Many corporate Windows policies ignore synthetic keystrokes (F15).
- * The robust approach is:
- *   1. SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED)
- *      — the official Windows API to prevent sleep (same as YouTube/PowerPoint do)
- *   2. Move mouse 1px via .NET Cursor.Position — universally recognized as "activity"
- *   3. F15 via SendKeys as backup
+ * DELIBERATELY MINIMAL for corporate safety:
+ * - NO Add-Type / DllImport (triggers EDR alerts — looks like malware)
+ * - NO SetThreadExecutionState via PowerShell (same issue)
+ * - NO mouse movement automation (flagged as keylogger behavior)
  * 
- * All via PowerShell — zero install, zero admin.
+ * Only uses WScript.Shell.SendKeys('{F15}') — the most benign method.
+ * F15 has no function in any app, so pressing it is completely harmless.
+ * 
+ * If corporate lock screen still triggers (GPO hard policy), use a
+ * hardware Mouse Jiggler (USB device) instead — zero software footprint.
  */
 function jiggleWindows() {
   const psScript = `
-# 1. Load Windows Forms for mouse control
-Add-Type -AssemblyName System.Windows.Forms
-
-# 2. Call SetThreadExecutionState to prevent display sleep
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class PowerUtil {
-    [DllImport("kernel32.dll")]
-    public static extern uint SetThreadExecutionState(uint esFlags);
-    
-    public const uint ES_CONTINUOUS = 0x80000000;
-    public const uint ES_SYSTEM_REQUIRED = 0x00000001;
-    public const uint ES_DISPLAY_REQUIRED = 0x00000002;
-}
-"@
-
-# Prevent display from turning off and system from sleeping
-[PowerUtil]::SetThreadExecutionState(
-    [PowerUtil]::ES_CONTINUOUS -bor [PowerUtil]::ES_SYSTEM_REQUIRED -bor [PowerUtil]::ES_DISPLAY_REQUIRED
-)
-
-# 3. Loop: jiggle mouse + press F15
-$wsh = New-Object -ComObject WScript.Shell
-while ($true) {
-    Start-Sleep -Seconds 30
-    
-    # Move mouse 1px then back — most reliable "activity" signal
-    $pos = [System.Windows.Forms.Cursor]::Position
-    [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($pos.X + 1, $pos.Y)
-    Start-Sleep -Milliseconds 50
-    [System.Windows.Forms.Cursor]::Position = $pos
-    
-    # Also press F15 as backup
-    try { $wsh.SendKeys('{F15}') } catch {}
-}
-`;
+    $wsh = New-Object -ComObject WScript.Shell
+    while ($true) {
+      Start-Sleep -Seconds 30
+      $wsh.SendKeys('{F15}')
+    }
+  `;
   // This runs as a detached child
   const child = spawn('powershell.exe', [
     '-NoProfile', '-NonInteractive', '-Command', psScript
@@ -271,7 +247,7 @@ function cmdRun(durationMs) {
   console.log(BEE);
 
   const platformLabel = PLATFORM === 'darwin' ? 'macOS caffeinate'
-    : PLATFORM === 'win32' ? 'Windows SetThreadExecutionState + Mouse'
+    : PLATFORM === 'win32' ? 'Windows SendKeys F15 (safe mode)'
     : 'Linux xdotool';
 
   if (durationMs) {

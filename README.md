@@ -38,22 +38,28 @@ Default unit is **minutes**. Add a suffix to override:
 
 ## How It Works
 
-| Platform | Method | Install needed? | Admin needed? |
-|----------|--------|:---------------:|:-------------:|
-| **macOS** | `caffeinate -i` (built-in) | ❌ | ❌ |
-| **Windows** | `SetThreadExecutionState` + mouse jiggle (built-in) | ❌ | ❌ |
-| **Linux** | `xdotool` (pre-installed on most distros) | maybe | ❌ |
+| Platform | Method | Install needed? | Admin needed? | EDR Safe? |
+|----------|--------|:---------------:|:-------------:|:---------:|
+| **macOS** | `caffeinate -i` (built-in) | ❌ | ❌ | ✅ |
+| **Windows** | `SendKeys F15` (built-in, minimal) | ❌ | ❌ | ✅ |
+| **Linux** | `xdotool` (pre-installed) | maybe | ❌ | ✅ |
 
-- **macOS**: Uses Apple's built-in `caffeinate` — not even a mouse jiggle, just cleanly blocks idle sleep.
-- **Windows**: Triple strategy — `SetThreadExecutionState` (official Windows API, same as YouTube/PowerPoint use to prevent screen sleep) + mouse jiggle 1px every 30s + F15 keystroke as backup. Corporate lock screen policies that ignore synthetic keystrokes are handled by the real mouse movement.
-- **Linux**: Moves mouse 1px via `xdotool`.
+### Corporate Safety (Windows)
+
+buzz deliberately uses **only** the most benign method on Windows (`WScript.Shell.SendKeys('{F15}')`) to avoid triggering corporate security software (EDR/DLP/antivirus). It does **NOT** use:
+
+- ❌ `Add-Type` + `DllImport` — flagged as malware technique by CrowdStrike/Defender
+- ❌ `SetThreadExecutionState` via PowerShell — P/Invoke into kernel32.dll triggers EDR
+- ❌ Automated mouse movement — flagged as keylogger behavior
+
+**If corporate GPO still locks your screen**: buzz can't override hard GPO policies. Use a **hardware Mouse Jiggler** instead — a USB device (~¥15 on Taobao) that physically simulates mouse movement. Zero software footprint, zero EDR detection risk.
 
 ## Why buzz?
 
-- **Zero dependencies** — `package.json` has no `dependencies` field. Nothing to break.
-- **No admin required** — perfect for locked-down corporate laptops.
-- **Cross-platform** — macOS, Windows, Linux all supported out of the box.
-- **Clean exit** — `buzz stop` from any terminal kills the running instance.
+- **Zero dependencies** — nothing to break, nothing to audit
+- **No admin required** — perfect for locked-down corporate laptops
+- **EDR-safe** — no suspicious API calls or DLL imports
+- **Cross-platform** — macOS, Windows, Linux all supported
 
 ## Examples
 
